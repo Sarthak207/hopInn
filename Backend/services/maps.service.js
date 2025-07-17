@@ -1,5 +1,6 @@
 const axios = require('axios');
 const captainModel = require('../models/captain.model');
+const CampusLocation = require('../models/campusLocation.model');
 
 module.exports.getAddressCoordinate = async (address) => {
     if (!address || address.trim() === '') {
@@ -137,3 +138,91 @@ module.exports.getCaptainsInTheRadius = async (ltd, lng, radius) => {
         throw error;
     }
 }
+
+module.exports.getCampusLocations = async () => {
+    try {
+        const locations = await CampusLocation.find({ isActive: true }).sort({ name: 1 });
+        return locations;
+    } catch (error) {
+        throw error;
+    }
+};
+
+// NEW: Search campus locations by name or aliases
+module.exports.searchCampusLocations = async (query) => {
+    try {
+        const locations = await CampusLocation.find({
+            $and: [
+                { isActive: true },
+                {
+                    $or: [
+                        { name: { $regex: query, $options: 'i' } },
+                        { aliases: { $regex: query, $options: 'i' } },
+                        { description: { $regex: query, $options: 'i' } },
+                        { type: { $regex: query, $options: 'i' } }
+                    ]
+                }
+            ]
+        }).sort({ name: 1 });
+        return locations;
+    } catch (error) {
+        throw error;
+    }
+};
+
+// NEW: Get campus locations by type (hostel, academic, sports, etc.)
+module.exports.getCampusLocationsByType = async (type) => {
+    try {
+        const locations = await CampusLocation.find({ 
+            isActive: true,
+            type: type 
+        }).sort({ name: 1 });
+        return locations;
+    } catch (error) {
+        throw error;
+    }
+};
+
+// NEW: Get nearby campus locations using geospatial queries
+module.exports.getNearbyCampusLocations = async (latitude, longitude, radius = 1000) => {
+    try {
+        const locations = await CampusLocation.find({
+            isActive: true,
+            coordinates: {
+                $near: {
+                    $geometry: {
+                        type: "Point",
+                        coordinates: [longitude, latitude]
+                    },
+                    $maxDistance: radius
+                }
+            }
+        });
+        return locations;
+    } catch (error) {
+        throw error;
+    }
+};
+
+// NEW: Get campus location by ID
+module.exports.getCampusLocationById = async (locationId) => {
+    try {
+        const location = await CampusLocation.findById(locationId);
+        return location;
+    } catch (error) {
+        throw error;
+    }
+};
+
+// NEW: Get popular campus locations (gates, main buildings, etc.)
+module.exports.getPopularCampusLocations = async () => {
+    try {
+        const locations = await CampusLocation.find({
+            isActive: true,
+            type: { $in: ['gate', 'academic', 'dining', 'sports'] }
+        }).sort({ type: 1, name: 1 });
+        return locations;
+    } catch (error) {
+        throw error;
+    }
+};

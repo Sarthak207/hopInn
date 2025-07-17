@@ -53,6 +53,30 @@ const rideSchema = new mongoose.Schema({
         select: false,
         required: true,
     },
+    campusPickup: {
+        locationId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'CampusLocation'
+        },
+        name: String,
+        type: String,
+        coordinates: {
+            latitude: Number,
+            longitude: Number
+        }
+    },
+    campusDestination: {
+        locationId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'CampusLocation'
+        },
+        name: String,
+        type: String,
+        coordinates: {
+            latitude: Number,
+            longitude: Number
+        }
+    }
 })
 
 module.exports = mongoose.model('ride', rideSchema);

@@ -13,10 +13,11 @@ import { useContext } from 'react';
 import { UserDataContext } from '../context/UserContext';
 import { useNavigate } from 'react-router-dom';
 import LiveTracking from '../components/LiveTracking';
+import CampusLocationPicker from '../components/CampusLocationPicker';
 
 const Home = () => {
-    const [ pickup, setPickup ] = useState('')
-    const [ destination, setDestination ] = useState('')
+    const [ pickup, setPickup ] = useState(null)  // Now stores campus location object
+    const [ destination, setDestination ] = useState(null)  // Now stores campus location object
     const [ panelOpen, setPanelOpen ] = useState(false)
     const vehiclePanelRef = useRef(null)
     const confirmRidePanelRef = useRef(null)
@@ -28,8 +29,6 @@ const Home = () => {
     const [ confirmRidePanel, setConfirmRidePanel ] = useState(false)
     const [ vehicleFound, setVehicleFound ] = useState(false)
     const [ waitingForDriver, setWaitingForDriver ] = useState(false)
-    const [ pickupSuggestions, setPickupSuggestions ] = useState([])
-    const [ destinationSuggestions, setDestinationSuggestions ] = useState([])
     const [ activeField, setActiveField ] = useState(null)
     const [ fare, setFare ] = useState({})
     const [ vehicleType, setVehicleType ] = useState(null)
@@ -74,54 +73,16 @@ const Home = () => {
         }
     }, [socket, navigate])
 
-    const handlePickupChange = async (e) => {
-        setPickup(e.target.value)
-        
-        if (e.target.value.length < 2) {
-            setPickupSuggestions([]);
-            return;
-        }
-        
-        try {
-            const response = await axios.get(`${import.meta.env.VITE_BASE_URL}/maps/get-suggestions`, {
-                params: { input: e.target.value }
-                // No auth header temporarily
-            })
-            
-            if (response.data.success) {
-                setPickupSuggestions(response.data.data || []);
-            } else {
-                setPickupSuggestions([]);
-            }
-        } catch (error) {
-            console.error('Pickup request failed:', error.message);
-            setPickupSuggestions([]);
-        }
+    const handlePickupSelect = (location) => {
+        setPickup(location)
+        setActiveField(null)
+        setPanelOpen(false)
     }
 
-    const handleDestinationChange = async (e) => {
-        setDestination(e.target.value)
-        
-        if (e.target.value.length < 2) {
-            setDestinationSuggestions([]);
-            return;
-        }
-        
-        try {
-            const response = await axios.get(`${import.meta.env.VITE_BASE_URL}/maps/get-suggestions`, {
-                params: { input: e.target.value }
-                // No auth header temporarily
-            })
-            
-            if (response.data.success) {
-                setDestinationSuggestions(response.data.data || []);
-            } else {
-                setDestinationSuggestions([]);
-            }
-        } catch (error) {
-            console.error('Destination request failed:', error.message);
-            setDestinationSuggestions([]);
-        }
+    const handleDestinationSelect = (location) => {
+        setDestination(location)
+        setActiveField(null)
+        setPanelOpen(false)
     }
 
     const submitHandler = (e) => {
@@ -228,7 +189,10 @@ const Home = () => {
             setPanelOpen(false)
             
             const response = await axios.get(`${import.meta.env.VITE_BASE_URL}/rides/get-fare`, {
-                params: { pickup, destination },
+                params: { 
+                    pickup: pickup.name, 
+                    destination: destination.name 
+                },
                 headers: {
                     Authorization: `Bearer ${localStorage.getItem('token')}`
                 }
@@ -259,9 +223,22 @@ const Home = () => {
     async function createRide() {
         try {
             const response = await axios.post(`${import.meta.env.VITE_BASE_URL}/rides/create`, {
-                pickup,
-                destination,
-                vehicleType
+                pickup: pickup.name,
+                destination: destination.name,
+                vehicleType,
+                // Add campus-specific data
+                campusPickup: {
+                    locationId: pickup._id,
+                    name: pickup.name,
+                    type: pickup.type,
+                    coordinates: pickup.coordinates
+                },
+                campusDestination: {
+                    locationId: destination._id,
+                    name: destination.name,
+                    type: destination.type,
+                    coordinates: destination.coordinates
+                }
             }, {
                 headers: {
                     Authorization: `Bearer ${localStorage.getItem('token')}`
@@ -286,7 +263,7 @@ const Home = () => {
                         </div>
                         <div>
                             <h1 className="text-white text-lg font-bold">hopIn</h1>
-                            <p className="text-gray-300 text-xs">Find a ride</p>
+                            <p className="text-gray-300 text-xs">IIT Bombay Campus</p>
                         </div>
                     </div>
                 </div>
@@ -315,49 +292,53 @@ const Home = () => {
                         }} className='absolute opacity-0 right-6 top-6 text-2xl text-white cursor-pointer'>
                             <i className="ri-arrow-down-wide-line"></i>
                         </h5>
-                        <h4 className='text-2xl font-semibold text-white mb-4'>Find a Pool</h4>
+                        <h4 className='text-2xl font-semibold text-white mb-4'>Find a Campus Ride</h4>
                         <form className='relative py-3' onSubmit={submitHandler}>
                             <div className="line absolute h-16 w-1 top-[50%] -translate-y-1/2 left-5 bg-gray-600 rounded-full"></div>
-                            <input
-                                onClick={() => {
-                                    setPanelOpen(true)
-                                    setActiveField('pickup')
-                                }}
-                                value={pickup}
-                                onChange={handlePickupChange}
-                                className='bg-gray-800 border border-gray-700 text-white px-12 py-3 text-lg rounded-lg w-full placeholder:text-gray-400 focus:outline-none focus:border-gray-600'
-                                type="text"
-                                placeholder='Campus pickup location'
-                            />
-                            <input
-                                onClick={() => {
-                                    setPanelOpen(true)
-                                    setActiveField('destination')
-                                }}
-                                value={destination}
-                                onChange={handleDestinationChange}
-                                className='bg-gray-800 border border-gray-700 text-white px-12 py-3 text-lg rounded-lg w-full mt-3 placeholder:text-gray-400 focus:outline-none focus:border-gray-600'
-                                type="text"
-                                placeholder='Where to?'
-                            />
+                            
+                            <div onClick={() => {
+                                setPanelOpen(true)
+                                setActiveField('pickup')
+                            }}>
+                                <div className='bg-gray-800 border border-gray-700 text-white px-12 py-3 text-lg rounded-lg w-full cursor-pointer hover:border-gray-600 transition-colors'>
+                                    <span className={pickup ? 'text-white' : 'text-gray-400'}>
+                                        {pickup ? pickup.name : 'Campus pickup location'}
+                                    </span>
+                                </div>
+                            </div>
+                            
+                            <div onClick={() => {
+                                setPanelOpen(true)
+                                setActiveField('destination')
+                            }}>
+                                <div className='bg-gray-800 border border-gray-700 text-white px-12 py-3 text-lg rounded-lg w-full mt-3 cursor-pointer hover:border-gray-600 transition-colors'>
+                                    <span className={destination ? 'text-white' : 'text-gray-400'}>
+                                        {destination ? destination.name : 'Where to?'}
+                                    </span>
+                                </div>
+                            </div>
                         </form>
                         <button
                             onClick={findTrip}
                             disabled={!pickup || !destination}
                             className='bg-white text-black px-4 py-3 rounded-lg mt-4 w-full font-semibold hover:bg-gray-200 transition-colors duration-200 disabled:bg-gray-400 disabled:cursor-not-allowed'>
-                            Find Pool Ride
+                            Find Campus Ride
                         </button>
                     </div>
 
                     <div ref={panelRef} className='bg-gray-900 border-t border-gray-700 overflow-y-auto' style={{ height: '0px', maxHeight: '50vh' }}>
-                        <LocationSearchPanel
-                            suggestions={activeField === 'pickup' ? pickupSuggestions : destinationSuggestions}
-                            setPanelOpen={setPanelOpen}
-                            setVehiclePanel={setVehiclePanel}
-                            setPickup={setPickup}
-                            setDestination={setDestination}
-                            activeField={activeField}
-                        />
+                        <div className="p-4">
+                            <h3 className="text-white text-lg font-semibold mb-4">
+                                Select {activeField === 'pickup' ? 'Pickup' : 'Destination'} Location
+                            </h3>
+                            <div className="bg-white rounded-lg p-1">
+                                <CampusLocationPicker
+                                    onLocationSelect={activeField === 'pickup' ? handlePickupSelect : handleDestinationSelect}
+                                    selectedLocation={activeField === 'pickup' ? pickup : destination}
+                                    placeholder={`Select ${activeField === 'pickup' ? 'pickup' : 'destination'} location`}
+                                />
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}
@@ -381,8 +362,8 @@ const Home = () => {
                     <div className='px-6 py-8'>
                         <ConfirmRide
                             createRide={createRide}
-                            pickup={pickup}
-                            destination={destination}
+                            pickup={pickup} // Pass full location object
+                            destination={destination} // Pass full location object
                             fare={fare}
                             vehicleType={vehicleType}
                             setConfirmRidePanel={setConfirmRidePanel} 
@@ -397,8 +378,8 @@ const Home = () => {
                     <div className='px-6 py-8'>
                         <LookingForDriver
                             createRide={createRide}
-                            pickup={pickup}
-                            destination={destination}
+                            pickup={pickup ? pickup.name : ''}
+                            destination={destination ? destination.name : ''}
                             fare={fare}
                             vehicleType={vehicleType}
                             setVehicleFound={setVehicleFound} />

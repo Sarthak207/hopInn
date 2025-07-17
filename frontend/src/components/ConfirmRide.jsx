@@ -1,6 +1,31 @@
-import React from 'react'
+import React, { useState } from 'react'
+import RouteVisualization from './RouteVisualization'
 
 const ConfirmRide = (props) => {
+    const [isCreatingRide, setIsCreatingRide] = useState(false)
+    const [routeInfo, setRouteInfo] = useState(null)
+
+    const handleCreateRide = async () => {
+        setIsCreatingRide(true)
+        try {
+            await props.createRide()
+            props.setConfirmRidePanel(false)
+            props.setVehicleFound(true)
+        } catch (error) {
+            console.error('Error creating ride:', error)
+        } finally {
+            setIsCreatingRide(false)
+        }
+    }
+
+    const handleRouteCalculated = (routeData) => {
+        setRouteInfo(routeData)
+    }
+
+    // Convert pickup/destination strings to objects if they're not already
+    const pickupLocation = typeof props.pickup === 'string' ? null : props.pickup
+    const destinationLocation = typeof props.destination === 'string' ? null : props.destination
+
     return (
         <div className="text-white">
             <h5 className='p-1 text-center w-[93%] absolute top-0' onClick={() => {
@@ -11,6 +36,19 @@ const ConfirmRide = (props) => {
             <h3 className='text-2xl font-semibold mb-6 text-white'>Confirm Pool Ride</h3>
 
             <div className='flex gap-4 justify-between flex-col items-center'>
+                {/* Route Visualization */}
+                {pickupLocation && destinationLocation && (
+                    <div className="w-full mb-4">
+                        <h4 className="text-white font-medium mb-3">Route Preview</h4>
+                        <RouteVisualization
+                            pickup={pickupLocation}
+                            destination={destinationLocation}
+                            showRoute={true}
+                            onRouteCalculated={handleRouteCalculated}
+                        />
+                    </div>
+                )}
+
                 {/* Vehicle Image */}
                 <div className="bg-gray-800 rounded-2xl p-4 w-full flex justify-center">
                     <img className='h-20' src="https://swyft.pl/wp-content/uploads/2023/05/how-many-people-can-a-uberx-take.jpg" alt="" />
@@ -25,7 +63,14 @@ const ConfirmRide = (props) => {
                         </div>
                         <div className="flex-1">
                             <h3 className='text-lg font-medium text-white'>Pickup</h3>
-                            <p className='text-sm text-gray-400 mt-1'>{props.pickup}</p>
+                            <p className='text-sm text-gray-400 mt-1'>
+                                {pickupLocation?.name || props.pickup}
+                            </p>
+                            {pickupLocation?.type && (
+                                <span className="inline-block px-2 py-1 text-xs bg-blue-600 text-white rounded-full mt-1">
+                                    {pickupLocation.type}
+                                </span>
+                            )}
                         </div>
                     </div>
 
@@ -36,9 +81,31 @@ const ConfirmRide = (props) => {
                         </div>
                         <div className="flex-1">
                             <h3 className='text-lg font-medium text-white'>Destination</h3>
-                            <p className='text-sm text-gray-400 mt-1'>{props.destination}</p>
+                            <p className='text-sm text-gray-400 mt-1'>
+                                {destinationLocation?.name || props.destination}
+                            </p>
+                            {destinationLocation?.type && (
+                                <span className="inline-block px-2 py-1 text-xs bg-green-600 text-white rounded-full mt-1">
+                                    {destinationLocation.type}
+                                </span>
+                            )}
                         </div>
                     </div>
+
+                    {/* Route Information */}
+                    {routeInfo && (
+                        <div className='flex items-center gap-4 p-4 border-b border-gray-700'>
+                            <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
+                                <i className="ri-route-line text-white"></i>
+                            </div>
+                            <div className="flex-1">
+                                <h3 className='text-lg font-medium text-white'>Route Info</h3>
+                                <p className='text-sm text-gray-400 mt-1'>
+                                    {routeInfo.distance} • {routeInfo.duration}
+                                </p>
+                            </div>
+                        </div>
+                    )}
 
                     {/* Fare Details */}
                     <div className='flex items-center gap-4 p-4 border-b border-gray-700'>
@@ -80,12 +147,12 @@ const ConfirmRide = (props) => {
                 </div>
 
                 {/* Confirm Button */}
-                <button onClick={() => {
-                    props.setVehicleFound(true)
-                    props.setConfirmRidePanel(false)
-                    props.createRide()
-                }} className='w-full mt-6 bg-white text-black font-semibold py-4 rounded-lg hover:bg-gray-200 transition-colors duration-200'>
-                    Confirm Pool Ride
+                <button 
+                    onClick={handleCreateRide}
+                    disabled={isCreatingRide}
+                    className='w-full mt-6 bg-white text-black font-semibold py-4 rounded-lg hover:bg-gray-200 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed'
+                >
+                    {isCreatingRide ? 'Creating Ride...' : 'Confirm Pool Ride'}
                 </button>
 
                 {/* Cancel Option */}
