@@ -33,10 +33,16 @@ const Home = () => {
     const [ fare, setFare ] = useState({})
     const [ vehicleType, setVehicleType ] = useState(null)
     const [ ride, setRide ] = useState(null)
+    const [ createdRide, setCreatedRide ] = useState(null) // Add this state to store created ride
 
     const navigate = useNavigate()
     const { socket } = useContext(SocketContext)
     const { user } = useContext(UserDataContext)
+
+    useEffect(() => {
+    console.log('🏠 createdRide state changed:', createdRide);
+    console.log('🔐 OTP in createdRide:', createdRide?.otp);
+}, [createdRide]);
 
     useEffect(() => {
         setVehiclePanel(false)
@@ -91,12 +97,14 @@ const Home = () => {
     }, [socket, navigate, pickup, destination, fare, vehicleType])
 
     const handlePickupSelect = (location) => {
+        console.log('Pickup selected:', location);
         setPickup(location)
         setActiveField(null)
         setPanelOpen(false)
     }
 
     const handleDestinationSelect = (location) => {
+        console.log('Destination selected:', location);
         setDestination(location)
         setActiveField(null)
         setPanelOpen(false)
@@ -237,38 +245,58 @@ const Home = () => {
         }
     }
 
-   async function createRide(otp = null) {
-    try {
-        const response = await axios.post(`${import.meta.env.VITE_BASE_URL}/rides/create`, {
-            pickup: pickup.name,
-            destination: destination.name,
-            vehicleType,
-            otp: otp, // Pass the OTP to backend
-            // Add campus-specific data
-            campusPickup: {
-                locationId: pickup._id,
-                name: pickup.name,
-                type: pickup.type,
-                coordinates: pickup.coordinates
-            },
-            campusDestination: {
-                locationId: destination._id,
-                name: destination.name,
-                type: destination.type,
-                coordinates: destination.coordinates
+    async function createRide() {  // Remove otp parameter
+        try {
+            // Validate inputs before making API call
+            if (!pickup || !destination) {
+                throw new Error('Please select both pickup and destination locations');
             }
-        }, {
-            headers: {
-                Authorization: `Bearer ${localStorage.getItem('token')}`
+
+            if (!pickup.name || !destination.name) {
+                throw new Error('Invalid location data');
             }
-        })
-        console.log('Ride created:', response.data)
-        return response; // Return response for LookingForDriver component
-    } catch (error) {
-        console.error('Error creating ride:', error)
-        throw error;
+
+            if (!vehicleType) {
+                throw new Error('Please select a vehicle type');
+            }
+
+            console.log('Creating ride with:', {
+                pickup: pickup.name,
+                destination: destination.name,
+                vehicleType,
+                campusPickup: pickup,
+                campusDestination: destination
+            });
+
+            const response = await axios.post(`${import.meta.env.VITE_BASE_URL}/rides/create`, {
+                pickup: pickup.name,
+                destination: destination.name,
+                vehicleType,
+                // Remove otp from here - let backend generate it
+                campusPickup: {
+                    locationId: pickup._id,
+                    name: pickup.name,
+                    type: pickup.type,
+                    coordinates: pickup.coordinates
+                },
+                campusDestination: {
+                    locationId: destination._id,
+                    name: destination.name,
+                    type: destination.type,
+                    coordinates: destination.coordinates
+                }
+            }, {
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem('token')}`
+                }
+            })
+            console.log('Ride created:', response.data)
+            return response; // Return response for ConfirmRide component
+        } catch (error) {
+            console.error('Error creating ride:', error)
+            throw error;
+        }
     }
-}
 
     return (
         <div className='h-screen relative overflow-hidden bg-black'>
@@ -387,7 +415,9 @@ const Home = () => {
                             fare={fare}
                             vehicleType={vehicleType}
                             setConfirmRidePanel={setConfirmRidePanel} 
-                            setVehicleFound={setVehicleFound} />
+                            setVehicleFound={setVehicleFound}
+                            setCreatedRide={setCreatedRide} // Pass the setter function
+                        />
                     </div>
                 </div>
             </div>
@@ -397,12 +427,13 @@ const Home = () => {
                 <div className='bg-gray-900 rounded-t-2xl border-t border-gray-700 max-h-[80vh] overflow-y-auto'>
                     <div className='px-6 py-8'>
                         <LookingForDriver
-                            createRide={createRide}
+                            ride={createdRide}  // Pass the created ride with OTP
                             pickup={pickup ? pickup.name : ''}
                             destination={destination ? destination.name : ''}
                             fare={fare}
                             vehicleType={vehicleType}
-                            setVehicleFound={setVehicleFound} />
+                            setVehicleFound={setVehicleFound} 
+                        />
                     </div>
                 </div>
             </div>

@@ -8,7 +8,19 @@ const ConfirmRide = (props) => {
     const handleCreateRide = async () => {
         setIsCreatingRide(true)
         try {
-            await props.createRide()
+            console.log('🔄 Creating ride...')
+            const response = await props.createRide()
+            
+            console.log('📦 API Response:', response?.data)
+            console.log('🚗 Ride object:', response?.data?.ride)
+            console.log('🔐 OTP from API:', response?.data?.ride?.otp)
+            
+            if (response?.data?.ride) {
+                // THIS WAS MISSING! Store the ride data
+                props.setCreatedRide(response.data.ride)
+                console.log('✅ setCreatedRide called with:', response.data.ride)
+            }
+            
             props.setConfirmRidePanel(false)
             props.setVehicleFound(true)
         } catch (error) {

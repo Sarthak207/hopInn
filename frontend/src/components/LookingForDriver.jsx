@@ -4,49 +4,29 @@ import { SocketContext } from '../context/SocketContext'
 
 const LookingForDriver = (props) => {
     const [otp, setOtp] = useState('')
-    const [rideId, setRideId] = useState('')
     const { socket } = useContext(SocketContext)
 
+    // SINGLE useEffect for handling ride prop and OTP setting
     useEffect(() => {
-        // Generate OTP when component mounts (when ride is created)
-        const generateOTP = () => {
-            const generatedOTP = Math.floor(100000 + Math.random() * 900000).toString();
-            setOtp(generatedOTP);
-            return generatedOTP;
-        };
-
-        // Create ride and get OTP
-        const createRideWithOTP = async () => {
-            try {
-                const currentOTP = generateOTP();
-                console.log('Generated OTP:', currentOTP);
-                
-                // Call the createRide function with OTP
-                const response = await props.createRide(currentOTP);
-                
-                if (response?.data?.ride) {
-                    setRideId(response.data.ride._id);
-                    console.log('Ride created with OTP:', currentOTP);
-                }
-            } catch (error) {
-                console.error('Error creating ride:', error);
-            }
-        };
-
-        // Only create ride if not already created
-        if (!rideId) {
-            createRideWithOTP();
+        console.log('🔍 LookingForDriver received ride prop:', props.ride);
+        console.log('🔐 OTP in props.ride:', props.ride?.otp);
+        
+        if (props.ride && props.ride.otp) {
+            console.log('✅ Setting OTP:', props.ride.otp);
+            setOtp(props.ride.otp);
+        } else {
+            console.log('❌ No OTP found in props.ride');
+            console.log('- props.ride exists:', !!props.ride);
+            console.log('- props.ride.otp exists:', !!props.ride?.otp);
         }
-    }, []);
+    }, [props.ride]);
 
     useEffect(() => {
         if (!socket) return;
 
         const handleRideAccepted = (data) => {
             console.log('Driver accepted ride:', data);
-            // Move to waiting for driver page
             props.setVehicleFound(false);
-            // The parent component will handle the transition
         };
 
         socket.on('ride-accepted', handleRideAccepted);
@@ -69,6 +49,16 @@ const LookingForDriver = (props) => {
                 <p className="text-gray-400 text-sm">Please wait while we find you a driver...</p>
             </div>
 
+            {/* Debug OTP Section */}
+            <div className="bg-red-600/20 border border-red-600/30 rounded-xl p-4 mb-4">
+                <div className="text-center text-red-300 text-sm">
+                    <p>Debug Info:</p>
+                    <p>OTP State: {otp || 'No OTP'}</p>
+                    <p>Props Ride: {props.ride ? 'Exists' : 'Null'}</p>
+                    <p>Props OTP: {props.ride?.otp || 'No OTP in props'}</p>
+                </div>
+            </div>
+
             {/* OTP Display Section */}
             <div className="bg-gradient-to-r from-green-600/20 to-blue-600/20 border border-green-600/30 rounded-xl p-6 mb-8">
                 <div className="text-center">
@@ -80,7 +70,7 @@ const LookingForDriver = (props) => {
                     </div>
                     <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 mb-4">
                         <h1 className='text-4xl font-bold text-white tracking-[0.3em] font-mono'>
-                            {otp || 'Generating...'}
+                            {otp || 'Loading...'}
                         </h1>
                     </div>
                     <div className="space-y-2 text-green-300 text-sm">
@@ -147,7 +137,7 @@ const LookingForDriver = (props) => {
                 </div>
                 <div className="flex items-center gap-3 mb-3">
                     <div className="w-3 h-3 bg-blue-500 rounded-full animate-pulse"></div>
-                    <span className="text-white font-medium">OTP generated and ready</span>
+                    <span className="text-white font-medium">OTP ready for driver</span>
                 </div>
                 <div className="flex items-center gap-3">
                     <div className="w-3 h-3 bg-gray-600 rounded-full"></div>

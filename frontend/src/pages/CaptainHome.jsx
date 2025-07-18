@@ -21,74 +21,135 @@ const CaptainHome = () => {
     const { socket } = useContext(SocketContext)
     const { captain } = useContext(CaptainDataContext)
 
+    // FIXED: Join socket after connection is established
     useEffect(() => {
-        socket.emit('join', {
-            userId: captain._id,
-            userType: 'captain'
-        })
-        
+        if (!socket || !captain) return;
+
+        const handleConnection = () => {
+            console.log('🔌 Socket connected with ID:', socket.id);
+            console.log('👤 Joining as captain:', captain._id);
+            
+            socket.emit('join', {
+                userId: captain._id,
+                userType: 'captain'
+            });
+        };
+
+        // If already connected, join immediately
+        if (socket.connected) {
+            handleConnection();
+        } else {
+            // Wait for connection, then join
+            socket.on('connect', handleConnection);
+        }
+
         const updateLocation = () => {
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(position => {
+                    console.log('📍 Updating captain location:', position.coords);
                     socket.emit('update-location-captain', {
                         userId: captain._id,
                         location: {
                             ltd: position.coords.latitude,
                             lng: position.coords.longitude
                         }
-                    })
-                })
+                    });
+                });
             }
         }
 
         const locationInterval = setInterval(updateLocation, 10000)
         updateLocation()
 
-        return () => clearInterval(locationInterval)
+        return () => {
+            clearInterval(locationInterval)
+            socket.off('connect', handleConnection)
+        }
     }, [socket, captain])
 
+    // FIXED: Set up listeners properly
     useEffect(() => {
-        if (!socket) return
+        if (!socket) return;
+
+        console.log('🔧 Setting up socket listeners...');
+        console.log('📱 Current socket ID:', socket.id);
 
         const handleNewRide = (data) => {
-            console.log('New ride request received:', data)
-            setRide(data)
-            setRidePopupPanel(true)
-        }
+            console.log('🚗 NEW RIDE REQUEST RECEIVED:', data);
+            alert('🚗 New ride request received!');
+            setRide(data);
+            setRidePopupPanel(true);
+        };
 
-        // Listen for ride confirmation from user/student
         const handleRideConfirmed = (data) => {
-            console.log('Ride confirmed by user:', data)
+            console.log('✅ Ride confirmed by user:', data)
             setRide(data)
-            setRidePopupPanel(false) // Hide ride request popup
-            setConfirmRidePopupPanel(true) // Now show OTP confirmation popup
+            setRidePopupPanel(false)
+            setConfirmRidePopupPanel(true)
         }
 
-        // Listen for ride cancellation
         const handleRideCancelled = () => {
-            console.log('Ride cancelled')
+            console.log('❌ Ride cancelled')
             setRidePopupPanel(false)
             setConfirmRidePopupPanel(false)
             setRide(null)
         }
 
+        // Debug listener to test socket connection
+        const handleTestMessage = (data) => {
+            console.log('📨 Test message received:', data);
+        }
+
+        // Add all listeners
         socket.on('new-ride', handleNewRide)
         socket.on('ride-confirmed', handleRideConfirmed)
         socket.on('ride-cancelled', handleRideCancelled)
+        socket.on('test-message', handleTestMessage)
+
+        console.log('✅ Socket listeners set up successfully');
+
+        // Debug: Listen for any events
+        const originalEmit = socket.oneAny;
+        socket.onAny((eventName, ...args) => {
+            console.log('📡 Received event:', eventName, args);
+        });
 
         return () => {
             socket.off('new-ride', handleNewRide)
             socket.off('ride-confirmed', handleRideConfirmed)
             socket.off('ride-cancelled', handleRideCancelled)
+            socket.off('test-message', handleTestMessage)
+            socket.offAny()
         }
     }, [socket])
 
-    // Function to accept ride (driver accepts the ride request)
-    async function acceptRide() {
+    // Debug: Log socket state changes
+    useEffect(() => {
+        if (!socket) return;
+
+        const handleConnect = () => {
+            console.log('🟢 Socket connected:', socket.id);
+        };
+
+        const handleDisconnect = () => {
+            console.log('🔴 Socket disconnected');
+        };
+
+        socket.on('connect', handleConnect);
+        socket.on('disconnect', handleDisconnect);
+
+        return () => {
+            socket.off('connect', handleConnect);
+            socket.off('disconnect', handleDisconnect);
+        };
+    }, [socket]);
+
+    const confirmRide = async () => {
         try {
-            const response = await axios.post(`${import.meta.env.VITE_BASE_URL}/rides/accept`, {
-                rideId: ride._id,
-                captainId: captain._id,
+            console.log('Confirming ride:', ride.rideId || ride._id);
+            
+            const response = await axios.post(`${import.meta.env.VITE_BASE_URL}/rides/confirm`, {
+                rideId: ride.rideId || ride._id,
             }, {
                 headers: {
                     Authorization: `Bearer ${localStorage.getItem('token')}`
@@ -96,25 +157,38 @@ const CaptainHome = () => {
             })
 
             if (response.status === 200) {
-                console.log('Ride accepted by driver')
-                // Don't open confirm popup here - wait for user confirmation
-                // The confirm popup will open when 'ride-confirmed' event is received
+                console.log('Ride confirmed successfully:', response.data);
+                setRide(prevRide => ({
+                    ...prevRide,
+                    status: 'accepted'
+                }));
+                return response.data;
             }
         } catch (error) {
-            console.error('Error accepting ride:', error)
+            console.error('Error confirming ride:', error);
+            throw error;
         }
     }
 
-    // Function to reject ride
-    async function rejectRide() {
+    const rejectRide = async () => {
         try {
             setRidePopupPanel(false)
             setRide(null)
-            // Optionally notify backend about rejection
         } catch (error) {
             console.error('Error rejecting ride:', error)
         }
     }
+
+    // Add test function for debugging
+    const testSocket = () => {
+        console.log('🧪 Testing socket connection...');
+        console.log('Socket ID:', socket?.id);
+        console.log('Socket connected:', socket?.connected);
+        
+        if (socket) {
+            socket.emit('test-socket', { message: 'Test from captain dashboard' });
+        }
+    };
 
     useGSAP(function () {
         if (ridePopupPanel) {
@@ -169,6 +243,14 @@ const CaptainHome = () => {
 
                 {/* Actions */}
                 <div className="flex items-center space-x-3">
+                    {/* Test Button - Remove after debugging */}
+                    <button 
+                        onClick={testSocket}
+                        className='bg-red-600 text-white px-3 py-1 rounded text-sm'
+                    >
+                        TEST
+                    </button>
+
                     {/* Online Status */}
                     <div className="bg-green-600/20 border border-green-600/30 rounded-full px-3 py-1">
                         <div className="flex items-center space-x-2">
@@ -204,6 +286,16 @@ const CaptainHome = () => {
                     </div>
                 </div>
 
+                {/* Socket Debug Info */}
+                <div className="absolute top-32 left-4 right-4">
+                    <div className="bg-gray-900/80 backdrop-blur-sm rounded-lg p-2 border border-gray-700">
+                        <div className="text-white text-xs">
+                            Socket: {socket?.id || 'Not connected'} | 
+                            Status: {socket?.connected ? 'Connected' : 'Disconnected'}
+                        </div>
+                    </div>
+                </div>
+
                 {/* Floating Stats */}
                 <div className="absolute bottom-4 left-4 right-4">
                     <div className="bg-gray-900/80 backdrop-blur-sm rounded-lg p-4 border border-gray-700">
@@ -230,20 +322,20 @@ const CaptainHome = () => {
                 <CaptainDetails />
             </div>
 
-            {/* Ride Request Popup Panel - Shows when new ride comes in */}
+            {/* Ride Request Popup Panel */}
             <div ref={ridePopupPanelRef} className='fixed w-full max-w-sm mx-auto left-0 right-0 z-30 bottom-0 translate-y-full'>
                 <div className='bg-gray-900 rounded-t-2xl border-t border-gray-700 px-6 py-10'>
                     <RidePopUp
                         ride={ride}
                         setRidePopupPanel={setRidePopupPanel}
                         setConfirmRidePopupPanel={setConfirmRidePopupPanel}
-                        acceptRide={acceptRide}
+                        confirmRide={confirmRide}
                         rejectRide={rejectRide}
                     />
                 </div>
             </div>
 
-            {/* Confirm Ride Popup Panel - Shows ONLY after user confirms */}
+            {/* Confirm Ride Popup Panel */}
             <div ref={confirmRidePopupPanelRef} className='fixed w-full max-w-sm mx-auto left-0 right-0 z-30 bottom-0 translate-y-full'>
                 <div className='bg-gray-900 rounded-t-2xl border-t border-gray-700 px-6 py-10 h-screen overflow-y-auto'>
                     <ConfirmRidePopUp

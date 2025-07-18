@@ -14,21 +14,51 @@ const ConfirmRidePopUp = (props) => {
 
     const submitHander = async (e) => {
         e.preventDefault()
+        
+        // Debug logs
+        console.log('Ride object:', props.ride);
+        console.log('Ride ID:', props.ride._id || props.ride.rideId);
+        console.log('OTP entered:', otp);
 
-        const response = await axios.get(`${import.meta.env.VITE_BASE_URL}/rides/start-ride`, {
-            params: {
-                rideId: props.ride._id,
-                otp: otp
-            },
-            headers: {
-                Authorization: `Bearer ${localStorage.getItem('token')}`
+        try {
+            const rideId = props.ride._id || props.ride.rideId;
+            
+            if (!rideId) {
+                console.error('No ride ID found');
+                alert('Error: Ride ID not found');
+                return;
             }
-        })
 
-        if (response.status === 200) {
-            props.setConfirmRidePopupPanel(false)
-            props.setRidePopupPanel(false)
-            navigate('/captain-riding', { state: { ride: props.ride } })
+            if (!otp) {
+                alert('Please enter OTP');
+                return;
+            }
+
+            const response = await axios.get(`${import.meta.env.VITE_BASE_URL}/rides/start-ride`, {
+                params: {
+                    rideId: rideId,
+                    otp: otp
+                },
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem('token')}`
+                }
+            });
+
+            if (response.status === 200) {
+                console.log('Ride started successfully');
+                props.setConfirmRidePopupPanel(false);
+                props.setRidePopupPanel(false);
+                navigate('/captain-riding', { state: { ride: props.ride } });
+            }
+        } catch (error) {
+            console.error('Error starting ride:', error);
+            console.error('Error response:', error.response?.data);
+            
+            if (error.response?.status === 400) {
+                alert('Invalid OTP or missing ride information');
+            } else {
+                alert('Error starting ride. Please try again.');
+            }
         }
     }
 
@@ -36,7 +66,9 @@ const ConfirmRidePopUp = (props) => {
         <div>
             <h5 className='p-1 text-center w-[93%] absolute top-0' onClick={() => {
                 props.setRidePopupPanel(false)
-            }}><i className="text-3xl text-gray-200 ri-arrow-down-wide-line"></i></h5>
+            }}>
+                <i className="text-3xl text-gray-200 ri-arrow-down-wide-line"></i>
+            </h5>
             <h3 className='text-2xl font-semibold mb-5'>Confirm this ride to Start</h3>
             <div className='flex items-center justify-between p-3 border-2 border-yellow-400 rounded-lg mt-4'>
                 <div className='flex items-center gap-3 '>
@@ -80,18 +112,23 @@ const ConfirmRidePopUp = (props) => {
                             type="text" 
                             className='bg-[#eee] px-6 py-4 font-mono text-lg rounded-lg w-full mt-3' 
                             placeholder='Enter OTP' 
+                            maxLength="6"
                         />
 
-                        <button className='w-full mt-5 text-lg flex justify-center bg-green-600 text-white font-semibold p-3 rounded-lg'>
+                        <button 
+                            type="submit"
+                            className='w-full mt-5 text-lg flex justify-center bg-green-600 text-white font-semibold p-3 rounded-lg'
+                        >
                             Confirm
                         </button>
                         <button 
                             type="button"
                             onClick={() => {
-                                props.setConfirmRidePopupPanel(false)
-                                props.setRidePopupPanel(false)
+                                props.setConfirmRidePopupPanel(false);
+                                props.setRidePopupPanel(false);
                             }} 
-                            className='w-full mt-2 bg-red-600 text-lg text-white font-semibold p-3 rounded-lg'>
+                            className='w-full mt-2 bg-red-600 text-lg text-white font-semibold p-3 rounded-lg'
+                        >
                             Cancel
                         </button>
                     </form>
