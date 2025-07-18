@@ -1,11 +1,10 @@
-import React, { useRef, useState } from 'react'
+import React, { useRef, useState, useEffect, useContext } from 'react'
 import { Link } from 'react-router-dom'
 import CaptainDetails from '../components/CaptainDetails'
 import RidePopUp from '../components/RidePopUp'
 import { useGSAP } from '@gsap/react'
 import gsap from 'gsap'
 import ConfirmRidePopUp from '../components/ConfirmRidePopUp'
-import { useEffect, useContext } from 'react'
 import { SocketContext } from '../context/SocketContext'
 import { CaptainDataContext } from '../context/CapatainContext'
 import axios from 'axios'
@@ -14,10 +13,10 @@ const CaptainHome = () => {
 
     const [ ridePopupPanel, setRidePopupPanel ] = useState(false)
     const [ confirmRidePopupPanel, setConfirmRidePopupPanel ] = useState(false)
+    const [ ride, setRide ] = useState(null)
 
     const ridePopupPanelRef = useRef(null)
     const confirmRidePopupPanelRef = useRef(null)
-    const [ ride, setRide ] = useState(null)
 
     const { socket } = useContext(SocketContext)
     const { captain } = useContext(CaptainDataContext)
@@ -51,12 +50,10 @@ const CaptainHome = () => {
     useEffect(() => {
         if (!socket) return
 
-        // Listen for new ride requests
         const handleNewRide = (data) => {
             console.log('New ride request received:', data)
             setRide(data)
             setRidePopupPanel(true)
-            // Don't show confirm popup yet - wait for user confirmation
         }
 
         // Listen for ride confirmation from user/student

@@ -53,15 +53,32 @@ const Home = () => {
     useEffect(() => {
         if (!socket) return;
 
-        const handleRideConfirmed = (ride) => {
+        const handleRideConfirmed = (rideData) => {
+            console.log('🎉 Ride confirmed received:', rideData);
             setVehicleFound(false)
             setWaitingForDriver(true)
-            setRide(ride)
+            
+            // Create complete ride object with all necessary data
+            const completeRide = {
+                ...rideData,
+                pickup: pickup?.name || rideData.pickup || '',
+                destination: destination?.name || rideData.destination || '',
+                fare: rideData.fare || fare[vehicleType] || 0,
+                vehicleType: vehicleType || rideData.vehicleType || '',
+                campusPickup: pickup || rideData.campusPickup || null,
+                campusDestination: destination || rideData.campusDestination || null,
+                // Ensure OTP is included
+                otp: rideData.otp || ''
+            };
+            
+            console.log('Complete ride object:', completeRide);
+            setRide(completeRide)
         }
 
-        const handleRideStarted = (ride) => {
+        const handleRideStarted = (rideData) => {
+            console.log('🚀 Ride started:', rideData);
             setWaitingForDriver(false)
-            navigate('/riding', { state: { ride } })
+            navigate('/riding', { state: { ride: rideData } })
         }
 
         socket.on('ride-confirmed', handleRideConfirmed)
@@ -71,7 +88,7 @@ const Home = () => {
             socket.off('ride-confirmed', handleRideConfirmed)
             socket.off('ride-started', handleRideStarted)
         }
-    }, [socket, navigate])
+    }, [socket, navigate, pickup, destination, fare, vehicleType])
 
     const handlePickupSelect = (location) => {
         setPickup(location)
@@ -220,41 +237,44 @@ const Home = () => {
         }
     }
 
-    async function createRide() {
-        try {
-            const response = await axios.post(`${import.meta.env.VITE_BASE_URL}/rides/create`, {
-                pickup: pickup.name,
-                destination: destination.name,
-                vehicleType,
-                // Add campus-specific data
-                campusPickup: {
-                    locationId: pickup._id,
-                    name: pickup.name,
-                    type: pickup.type,
-                    coordinates: pickup.coordinates
-                },
-                campusDestination: {
-                    locationId: destination._id,
-                    name: destination.name,
-                    type: destination.type,
-                    coordinates: destination.coordinates
-                }
-            }, {
-                headers: {
-                    Authorization: `Bearer ${localStorage.getItem('token')}`
-                }
-            })
-            console.log('Ride created:', response.data)
-        } catch (error) {
-            console.error('Error creating ride:', error)
-        }
+   async function createRide(otp = null) {
+    try {
+        const response = await axios.post(`${import.meta.env.VITE_BASE_URL}/rides/create`, {
+            pickup: pickup.name,
+            destination: destination.name,
+            vehicleType,
+            otp: otp, // Pass the OTP to backend
+            // Add campus-specific data
+            campusPickup: {
+                locationId: pickup._id,
+                name: pickup.name,
+                type: pickup.type,
+                coordinates: pickup.coordinates
+            },
+            campusDestination: {
+                locationId: destination._id,
+                name: destination.name,
+                type: destination.type,
+                coordinates: destination.coordinates
+            }
+        }, {
+            headers: {
+                Authorization: `Bearer ${localStorage.getItem('token')}`
+            }
+        })
+        console.log('Ride created:', response.data)
+        return response; // Return response for LookingForDriver component
+    } catch (error) {
+        console.error('Error creating ride:', error)
+        throw error;
     }
+}
 
     return (
         <div className='h-screen relative overflow-hidden bg-black'>
             {/* Header with hopIn Logo */}
-            <div className="absolute top-6 left-6 z-30">
-                <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-3 border border-white/20">
+            <div className="absolute top-20 left-2 z-30">
+                <div className="bg-gray-900 backdrop-blur-sm rounded-2xl p-3 border border-white/20">
                     <div className="flex items-center space-x-3">
                         <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center">
                             <svg className="w-5 h-5 text-black" fill="currentColor" viewBox="0 0 24 24">

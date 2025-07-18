@@ -7,7 +7,18 @@ const WaitingForDriver = (props) => {
   const [driverLocation, setDriverLocation] = useState(null)
   const [eta, setEta] = useState(null)
   const [rideStatus, setRideStatus] = useState('confirmed')
+  const [otp, setOtp] = useState('')
+  const [captain, setCaptain] = useState(null)
   const { socket } = useContext(SocketContext)
+
+  useEffect(() => {
+    // Set initial ride data
+    if (props.ride) {
+      setOtp(props.ride.otp || '')
+      setCaptain(props.ride.captain || null)
+      console.log('Ride data in WaitingForDriver:', props.ride)
+    }
+  }, [props.ride])
 
   useEffect(() => {
     if (!socket || !props.ride) return
@@ -39,7 +50,7 @@ const WaitingForDriver = (props) => {
 
   const cancelRide = () => {
     if (socket && props.ride) {
-      socket.emit('cancel-ride', { rideId: props.ride._id })
+      socket.emit('cancel-ride', { rideId: props.ride.rideId || props.ride._id })
     }
     props.setWaitingForDriver(false)
     props.setVehicleFound(false)
@@ -105,21 +116,21 @@ const WaitingForDriver = (props) => {
           <div className='flex items-center gap-3'>
             <div className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center">
               <span className="text-white font-bold text-lg">
-                {props.ride?.captain?.fullname?.firstname?.charAt(0) || 'D'}
+                {captain?.fullname?.firstname?.charAt(0) || 'D'}
               </span>
             </div>
             <div>
               <h2 className='text-lg font-medium text-white capitalize'>
-                {props.ride?.captain?.fullname?.firstname} {props.ride?.captain?.fullname?.lastname}
+                {captain?.fullname?.firstname || 'Driver'} {captain?.fullname?.lastname || ''}
               </h2>
               <p className='text-sm text-gray-400'>
-                {props.ride?.captain?.vehicle?.color} {props.ride?.captain?.vehicle?.vehicleType}
+                {captain?.vehicle?.color || 'Unknown'} {captain?.vehicle?.vehicleType || 'Vehicle'}
               </p>
             </div>
           </div>
           <div className='text-right'>
             <h4 className='text-lg font-semibold text-white'>
-              {props.ride?.captain?.vehicle?.plate}
+              {captain?.vehicle?.plate || 'N/A'}
             </h4>
             <div className="flex items-center gap-1 mt-1">
               <i className="ri-star-fill text-yellow-400 text-sm"></i>
@@ -134,14 +145,24 @@ const WaitingForDriver = (props) => {
         </div>
       </div>
 
-      {/* OTP Section */}
-      <div className="bg-blue-600/20 border border-blue-600/30 rounded-xl p-4 mb-6">
+      {/* OTP Section - Enhanced */}
+      <div className="bg-gradient-to-r from-blue-600/20 to-purple-600/20 border border-blue-600/30 rounded-xl p-6 mb-6">
         <div className="text-center">
-          <h4 className="text-blue-300 font-medium mb-2">Ride OTP</h4>
-          <h1 className='text-3xl font-bold text-blue-400 tracking-wider'>
-            {props.ride?.otp || '----'}
-          </h1>
-          <p className="text-blue-300 text-sm mt-2">Share this code with your driver</p>
+          <div className="flex items-center justify-center mb-3">
+            <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center mr-3">
+              <i className="ri-lock-fill text-white text-lg"></i>
+            </div>
+            <h4 className="text-blue-300 font-semibold text-lg">Your Ride OTP</h4>
+          </div>
+          <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 mb-4">
+            <h1 className='text-4xl font-bold text-white tracking-[0.3em] font-mono'>
+              {otp || '----'}
+            </h1>
+          </div>
+          <div className="flex items-center justify-center text-blue-300 text-sm">
+            <i className="ri-information-line mr-2"></i>
+            <span>Share this code with your driver to start the ride</span>
+          </div>
         </div>
       </div>
 
@@ -216,14 +237,14 @@ const WaitingForDriver = (props) => {
       {/* Action Buttons */}
       <div className="space-y-3">
         <button 
-          className="w-full bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors duration-200"
-          onClick={() => window.open(`tel:${props.ride?.captain?.phone}`, '_self')}
+          className="w-full bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors duration-200 flex items-center justify-center"
+          onClick={() => captain?.phone && window.open(`tel:${captain.phone}`, '_self')}
         >
           <i className="ri-phone-line mr-2"></i>
           Call Driver
         </button>
         
-        <button className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors duration-200">
+        <button className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors duration-200 flex items-center justify-center">
           <i className="ri-message-2-line mr-2"></i>
           Message Driver
         </button>

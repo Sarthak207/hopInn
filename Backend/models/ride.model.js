@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 
-
+// Create a completely fresh schema
 const rideSchema = new mongoose.Schema({
     user: {
         type: mongoose.Schema.Types.ObjectId,
@@ -23,21 +23,17 @@ const rideSchema = new mongoose.Schema({
         type: Number,
         required: true,
     },
-
     status: {
         type: String,
         enum: [ 'pending', 'accepted', "ongoing", 'completed', 'cancelled' ],
         default: 'pending',
     },
-
     duration: {
         type: Number,
-    }, // in seconds
-
+    },
     distance: {
         type: Number,
-    }, // in meters
-
+    },
     paymentID: {
         type: String,
     },
@@ -47,36 +43,25 @@ const rideSchema = new mongoose.Schema({
     signature: {
         type: String,
     },
-
     otp: {
         type: String,
         select: false,
         required: true,
     },
+    // Campus location fields - defined as mixed objects
     campusPickup: {
-        locationId: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: 'CampusLocation'
-        },
-        name: String,
-        type: String,
-        coordinates: {
-            latitude: Number,
-            longitude: Number
-        }
+        type: mongoose.Schema.Types.Mixed,
+        default: null
     },
     campusDestination: {
-        locationId: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: 'CampusLocation'
-        },
-        name: String,
-        type: String,
-        coordinates: {
-            latitude: Number,
-            longitude: Number
-        }
+        type: mongoose.Schema.Types.Mixed,
+        default: null
     }
-})
+});
+
+// Clear any existing model to avoid conflicts
+if (mongoose.models.ride) {
+    delete mongoose.models.ride;
+}
 
 module.exports = mongoose.model('ride', rideSchema);

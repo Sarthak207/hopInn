@@ -6,42 +6,82 @@ const rideModel = require('../models/ride.model');
 
 
 module.exports.createRide = async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        return res.status(400).json({ errors: errors.array() });
-    }
-
-    const { userId, pickup, destination, vehicleType } = req.body;
-
     try {
-        const ride = await rideService.createRide({ user: req.user._id, pickup, destination, vehicleType });
-        res.status(201).json(ride);
-
-        const pickupCoordinates = await mapService.getAddressCoordinate(pickup);
-
-
-
-        const captainsInRadius = await mapService.getCaptainsInTheRadius(pickupCoordinates.ltd, pickupCoordinates.lng, 2);
-
-        ride.otp = ""
-
-        const rideWithUser = await rideModel.findOne({ _id: ride._id }).populate('user');
-
-        captainsInRadius.map(captain => {
-
-            sendMessageToSocketId(captain.socketId, {
-                event: 'new-ride',
-                data: rideWithUser
-            })
-
-        })
-
-    } catch (err) {
-
-        console.log(err);
-        return res.status(500).json({ message: err.message });
+        const { pickup, destination, vehicleType, campusPickup, campusDestination } = req.body;
+        
+        // Check if this is a campus-to-campus ride
+        if (campusPickup && campusDestination) {
+            // Use campus coordinates directly, skip geocoding
+            const rideData = {
+                user: req.user._id,
+                pickup,
+                destination,
+                vehicleType,
+                campusPickup,
+                campusDestination,
+                // Skip geocoding for campus locations
+                pickupCoordinates: {
+                    latitude: campusPickup.coordinates.latitude,
+                    longitude: campusPickup.coordinates.longitude
+                },
+                destinationCoordinates: {
+                    latitude: campusDestination.coordinates.latitude,
+                    longitude: campusDestination.coordinates.longitude
+                }
+            };
+            
+            const ride = await rideService.createRide(rideData);
+            return res.status(201).json({
+                success: true,
+                ride,
+                message: 'Campus ride created successfully'
+            });
+        }
+        
+        // For non-campus rides, use geocoding
+        try {
+            const pickupCoordinates = await mapsService.getAddressCoordinate(pickup);
+            const destinationCoordinates = await mapsService.getAddressCoordinate(destination);
+            
+            const rideData = {
+                user: req.user._id,
+                pickup,
+                destination,
+                vehicleType,
+                pickupCoordinates,
+                destinationCoordinates,
+                campusPickup,
+                campusDestination
+            };
+            
+            const ride = await rideService.createRide(rideData);
+            return res.status(201).json({
+                success: true,
+                ride,
+                message: 'Ride created successfully'
+            });
+            
+        } catch (geocodingError) {
+            console.error('Geocoding failed:', geocodingError.message);
+            return res.status(400).json({
+                success: false,
+                message: 'Unable to find the specified locations. Please check the addresses.',
+                error: geocodingError.message
+            });
+        }
+        
+    } catch (error) {
+        console.error('Error creating ride:', error);
+        
+        // Only send response if headers haven't been sent
+        if (!res.headersSent) {
+            return res.status(500).json({
+                success: false,
+                message: 'Failed to create ride',
+                error: error.message
+            });
+        }
     }
-
 };
 
 module.exports.getFare = async (req, res) => {
@@ -129,5 +169,5 @@ module.exports.endRide = async (req, res) => {
         return res.status(200).json(ride);
     } catch (err) {
         return res.status(500).json({ message: err.message });
-    } s
+    } 
 }

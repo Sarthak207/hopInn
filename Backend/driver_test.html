@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Driver Test Page</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        input, button {
+            padding: 8px;
+            margin: 5px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        #notifications {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 10px;
+            min-height: 100px;
+        }
+        .notification {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            border-radius: 5px;
+            padding: 10px;
+            margin: 5px 0;
+        }
+        .status {
+            font-weight: bold;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .connected {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .disconnected {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <h1>🚗 Driver Test Page</h1>
+    
+    <div class="section">
+        <h3>Connection Status</h3>
+        <div id="status" class="status disconnected">Disconnected</div>
+    </div>
+    
+    <div class="section">
+        <h3>Connect as Captain</h3>
+        <input type="text" id="captainId" placeholder="Enter Captain ID">
+        <button onclick="connectCaptain()">Connect as Captain</button>
+        <button onclick="testNotification()">Test Notification</button>
+    </div>
+    
+    <div class="section">
+        <h3>Update Location</h3>
+        <input type="text" id="latitude" placeholder="Latitude" value="19.1334">
+        <input type="text" id="longitude" placeholder="Longitude" value="72.9133">
+        <button onclick="updateLocation()">Update Location</button>
+    </div>
+    
+    <div class="section">
+        <h3>🔔 Ride Notifications</h3>
+        <div id="notifications"></div>
+    </div>
+    
+    <script>
+        const socket = io();
+        let currentCaptainId = null;
+        
+        socket.on('connect', () => {
+            console.log('✅ Socket connected:', socket.id);
+            document.getElementById('status').textContent = 'Connected: ' + socket.id;
+            document.getElementById('status').className = 'status connected';
+        });
+        
+        socket.on('disconnect', () => {
+            console.log('❌ Socket disconnected');
+            document.getElementById('status').textContent = 'Disconnected';
+            document.getElementById('status').className = 'status disconnected';
+        });
+        
+        socket.on('new-ride', (data) => {
+            console.log('🚗 New ride received:', data);
+            alert('🚗 New ride request received!');
+            
+            const div = document.createElement('div');
+            div.className = 'notification';
+            div.innerHTML = `
+                <h4>🚗 New Ride Request!</h4>
+                <p><strong>From:</strong> ${data.pickup}</p>
+                <p><strong>To:</strong> ${data.destination}</p>
+                <p><strong>Fare:</strong> ₹${data.fare}</p>
+                <p><strong>Vehicle:</strong> ${data.vehicleType}</p>
+                <p><strong>Time:</strong> ${new Date().toLocaleTimeString()}</p>
+                <hr>
+            `;
+            document.getElementById('notifications').appendChild(div);
+        });
+        
+        socket.on('test-message', (data) => {
+            console.log('📨 Test message received:', data);
+            alert('Test message: ' + data.message);
+        });
+        
+        function connectCaptain() {
+            const captainId = document.getElementById('captainId').value;
+            if (!captainId) {
+                alert('Please enter Captain ID');
+                return;
+            }
+            
+            currentCaptainId = captainId;
+            socket.emit('join', { userId: captainId, userType: 'captain' });
+            console.log('📞 Connecting as captain:', captainId);
+            
+            // Test socket after connection
+            setTimeout(() => {
+                socket.emit('test-socket', { message: 'Hello from captain!' });
+            }, 1000);
+        }
+        
+        function updateLocation() {
+            if (!currentCaptainId) {
+                alert('Please connect as captain first');
+                return;
+            }
+            
+            const lat = document.getElementById('latitude').value;
+            const lng = document.getElementById('longitude').value;
+            
+            socket.emit('update-location-captain', {
+                userId: currentCaptainId,
+                location: { ltd: parseFloat(lat), lng: parseFloat(lng) }
+            });
+            
+            console.log('📍 Location updated:', { lat, lng });
+            alert('📍 Location updated successfully!');
+        }
+        
+        function testNotification() {
+            if (!currentCaptainId) {
+                alert('Please connect as captain first');
+                return;
+            }
+            
+            socket.emit('test-notification', { captainId: currentCaptainId });
+            console.log('🧪 Testing notification...');
+        }
+    </script>
+</body>
+</html>

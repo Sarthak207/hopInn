@@ -5,7 +5,7 @@ const mapsService = require('../services/maps.service');
 const authMiddleware = require('../middlewares/auth.middleware');
 
 // Get all campus locations
-router.get('/locations', authMiddleware.authUser, async (req, res) => {
+router.get('/locations', authMiddleware.authUser,async (req, res) => {
     try {
         const locations = await mapsService.getCampusLocations();
         res.json({
