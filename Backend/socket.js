@@ -26,6 +26,7 @@ function initializeSocket(server) {
                     socketId: socket.id,
                     status: 'active' // Mark captain as active when they connect
                 });
+                console.log(`✅ Captain ${userId} marked as active with socketId: ${socket.id}`);
             }
         });
 
@@ -47,43 +48,54 @@ function initializeSocket(server) {
                 lng: location.lng
             });
 
-            socket.on('test-socket', (data) => {
-    console.log('📨 Test socket received:', data);
-    socket.emit('test-message', { message: 'Socket working!' });
-});
-
-socket.on('test-notification', (data) => {
-    console.log('🧪 Testing notification to captain:', data.captainId);
-    sendMessageToSocketId(socket.id, {
-        event: 'new-ride',
-        data: {
-            rideId: 'test-123',
-            pickup: 'Test Pickup',
-            destination: 'Test Destination',
-            fare: 50,
-            vehicleType: 'car',
-            message: 'This is a test notification'
-        }
-    });
-});
-
-
             console.log(`Captain ${userId} location updated to [${location.lng}, ${location.ltd}]`);
         });
 
-        socket.on('disconnect', () => {
+        // MOVE THESE OUTSIDE OF THE LOCATION UPDATE HANDLER
+        socket.on('test-socket', (data) => {
+            console.log('📨 Test socket received:', data);
+            socket.emit('test-message', { message: 'Socket working!' });
+        });
+
+        socket.on('test-notification', (data) => {
+            console.log('🧪 Testing notification to captain:', data.captainId);
+            sendMessageToSocketId(socket.id, {
+                event: 'new-ride',
+                data: {
+                    rideId: 'test-123',
+                    pickup: 'Test Pickup',
+                    destination: 'Test Destination',
+                    fare: 50,
+                    vehicleType: 'car',
+                    message: 'This is a test notification'
+                }
+            });
+        });
+
+        socket.on('disconnect', async () => {
             console.log(`Client disconnected: ${socket.id}`);
+            
+            // Mark captain as inactive when they disconnect
+            try {
+                await captainModel.findOneAndUpdate(
+                    { socketId: socket.id }, 
+                    { status: 'inactive', socketId: null }
+                );
+            } catch (error) {
+                console.log('Error updating captain status on disconnect:', error);
+            }
         });
     });
 }
 
 const sendMessageToSocketId = (socketId, messageObject) => {
-    console.log(`Sending message to socket ${socketId}:`, messageObject);
+    console.log(`📤 Sending message to socket ${socketId}:`, messageObject);
 
     if (io) {
         io.to(socketId).emit(messageObject.event, messageObject.data);
+        console.log(`✅ Message sent successfully`);
     } else {
-        console.log('Socket.io not initialized.');
+        console.log('❌ Socket.io not initialized.');
     }
 }
 

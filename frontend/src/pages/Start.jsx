@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom'
 const Start = () => {
   return (
     <div>
-      <div className='bg-cover bg-center bg-[url(https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=800&h=1200&fit=crop&crop=center)] h-screen flex justify-end flex-col w-full relative'>
+      <div className='bg-cover bg-center bg-[url(https://images.unsplash.com/photo-1530203283902-296243a9169f?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MzB8fGJpa2VzfGVufDB8fDB8fHww)] h-screen flex justify-end flex-col w-full relative'>
         {/* Dark overlay for better text readability */}
         <div className="absolute inset-0 bg-black bg-opacity-40"></div>
         

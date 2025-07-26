@@ -4,10 +4,10 @@ const mapService = require('../services/maps.service');
 const { sendMessageToSocketId } = require('../socket');
 const rideModel = require('../models/ride.model');
 
-
 module.exports.createRide = async (req, res) => {
     try {
         const { pickup, destination, vehicleType, campusPickup, campusDestination } = req.body;
+        // Remove otp from destructuring - backend will generate it
         
         // Check if this is a campus-to-campus ride
         if (campusPickup && campusDestination) {
@@ -17,6 +17,7 @@ module.exports.createRide = async (req, res) => {
                 pickup,
                 destination,
                 vehicleType,
+                // Remove otp from here - let backend generate it
                 campusPickup,
                 campusDestination,
                 // Skip geocoding for campus locations
@@ -40,14 +41,15 @@ module.exports.createRide = async (req, res) => {
         
         // For non-campus rides, use geocoding
         try {
-            const pickupCoordinates = await mapsService.getAddressCoordinate(pickup);
-            const destinationCoordinates = await mapsService.getAddressCoordinate(destination);
+            const pickupCoordinates = await mapService.getAddressCoordinate(pickup);
+            const destinationCoordinates = await mapService.getAddressCoordinate(destination);
             
             const rideData = {
                 user: req.user._id,
                 pickup,
                 destination,
                 vehicleType,
+                // Remove otp from here - let backend generate it
                 pickupCoordinates,
                 destinationCoordinates,
                 campusPickup,
@@ -108,19 +110,38 @@ module.exports.confirmRide = async (req, res) => {
 
     const { rideId } = req.body;
 
+    console.log('Confirming ride:', rideId);
+    console.log('Captain:', req.captain);
+
+    if (!rideId) {
+        return res.status(400).json({ 
+            success: false,
+            message: 'Ride ID is required' 
+        });
+    }
+
     try {
         const ride = await rideService.confirmRide({ rideId, captain: req.captain });
 
+        console.log('Ride confirmed successfully:', ride);
+
+        // Send confirmation to user
         sendMessageToSocketId(ride.user.socketId, {
             event: 'ride-confirmed',
             data: ride
-        })
+        });
 
-        return res.status(200).json(ride);
+        return res.status(200).json({
+            success: true,
+            ride,
+            message: 'Ride confirmed successfully'
+        });
     } catch (err) {
-
-        console.log(err);
-        return res.status(500).json({ message: err.message });
+        console.error('Confirm ride error:', err);
+        return res.status(500).json({ 
+            success: false,
+            message: err.message 
+        });
     }
 }
 
@@ -132,19 +153,45 @@ module.exports.startRide = async (req, res) => {
 
     const { rideId, otp } = req.query;
 
+    // Add specific validation logs
+    console.log('Start ride request:', { rideId, otp });
+    console.log('Captain:', req.captain);
+
+    if (!rideId) {
+        return res.status(400).json({ 
+            success: false,
+            message: 'Ride ID is required' 
+        });
+    }
+
+    if (!otp) {
+        return res.status(400).json({ 
+            success: false,
+            message: 'OTP is required' 
+        });
+    }
+
     try {
         const ride = await rideService.startRide({ rideId, otp, captain: req.captain });
 
-        console.log(ride);
+        console.log('Ride started successfully:', ride);
 
         sendMessageToSocketId(ride.user.socketId, {
             event: 'ride-started',
             data: ride
-        })
+        });
 
-        return res.status(200).json(ride);
+        return res.status(200).json({
+            success: true,
+            ride,
+            message: 'Ride started successfully'
+        });
     } catch (err) {
-        return res.status(500).json({ message: err.message });
+        console.error('Start ride error:', err);
+        return res.status(500).json({ 
+            success: false,
+            message: err.message 
+        });
     }
 }
 
@@ -162,12 +209,18 @@ module.exports.endRide = async (req, res) => {
         sendMessageToSocketId(ride.user.socketId, {
             event: 'ride-ended',
             data: ride
-        })
+        });
 
-
-
-        return res.status(200).json(ride);
+        return res.status(200).json({
+            success: true,
+            ride,
+            message: 'Ride ended successfully'
+        });
     } catch (err) {
-        return res.status(500).json({ message: err.message });
+        console.error('End ride error:', err);
+        return res.status(500).json({ 
+            success: false,
+            message: err.message 
+        });
     } 
 }

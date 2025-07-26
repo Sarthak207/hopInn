@@ -9,7 +9,7 @@
 const crypto      = require('crypto');
 const rideModel   = require('../models/ride.model');
 const captainModel = require('../models/captain.model');
-const userModel   = require('../models/user.model');  // ADD THIS IMPORT
+const userModel   = require('../models/user.model');
 const mapService  = require('./maps.service');
 const { sendMessageToSocketId } = require('../socket');
 const mongoose    = require('mongoose');
@@ -81,7 +81,7 @@ const genOtp = (n = 6) =>
   crypto.randomInt(10 ** (n - 1), 10 ** n).toString();
 
 /* ────────────────────────────────────────────────────────────────────────── *
- *  5. CREATE RIDE - UPDATED WITH DEBUGGING AND USER DATA                   *
+ *  5. CREATE RIDE - COMPLETE WITH NOTIFICATION SYSTEM                      *
  * ────────────────────────────────────────────────────────────────────────── */
 module.exports.createRide = async ({
   user, pickup, destination, vehicleType,
@@ -96,7 +96,7 @@ module.exports.createRide = async ({
       ? await getCampusFare(campusPickup, campusDestination)
       : await getExternalFare(pickup, destination);
 
-  // FIXED: Convert locationId strings to ObjectIds for campus locations
+  // Convert locationId strings to ObjectIds for campus locations
   let processedCampusPickup = null;
   let processedCampusDestination = null;
 
@@ -124,12 +124,14 @@ module.exports.createRide = async ({
     destination,
     vehicleType,
     fare : fareTable[vehicleType],
-    otp  : genOtp(),
+    otp  : genOtp(), // Always generate OTP in backend
     campusPickup: processedCampusPickup,
     campusDestination: processedCampusDestination,
     status: 'pending'
   });
 
+  console.log('🔐 Generated OTP:', ride.otp);
+  
   // Real-time broadcast to captains in radius (campus rides only)
   if (campusPickup && campusDestination) {
     console.log('🔍 Looking for captains near campus location...');
@@ -140,7 +142,15 @@ module.exports.createRide = async ({
       const userData = await userModel.findById(user).select('fullname email');
       console.log('👤 User data:', userData);
 
-      // TEMPORARY: Get ALL active captains with socketId (ignore location for now)
+      // Check ALL captains first
+      const allCaptains = await captainModel.find({}).select('_id fullname socketId status');
+      console.log(`📊 Total captains in database: ${allCaptains.length}`);
+      
+      allCaptains.forEach(captain => {
+        console.log(`👤 Captain ${captain.fullname.firstname}: status=${captain.status}, socketId=${captain.socketId}`);
+      });
+
+      // Get active captains with socketId
       const captains = await captainModel.find({
         status: 'active',
         socketId: { $exists: true, $ne: null }
@@ -148,6 +158,29 @@ module.exports.createRide = async ({
 
       console.log(`🚗 Found ${captains.length} active captains with socketId`);
       
+      if (captains.length === 0) {
+        console.log('❌ No active captains found! Checking reasons...');
+        
+        // Check captains without socketId
+        const captainsWithoutSocket = await captainModel.find({
+          status: 'active',
+          $or: [
+            { socketId: { $exists: false } },
+            { socketId: null },
+            { socketId: '' }
+          ]
+        }).select('_id fullname status');
+        
+        console.log(`⚠️  Active captains without socketId: ${captainsWithoutSocket.length}`);
+        
+        // Check inactive captains
+        const inactiveCaptains = await captainModel.find({
+          status: { $ne: 'active' }
+        }).select('_id fullname status');
+        
+        console.log(`😴 Inactive captains: ${inactiveCaptains.length}`);
+      }
+
       captains.forEach(captain => {
         console.log(`👤 Captain ${captain.fullname.firstname}: socketId=${captain.socketId}`);
       });
@@ -160,11 +193,12 @@ module.exports.createRide = async ({
             event: 'new-ride',
             data: {
               rideId: ride._id,
-              user: userData,  // Send full user object instead of userId
+              user: userData,
               pickup,
               destination,
               fare: ride.fare,
               vehicleType,
+              otp: ride.otp,
               campusPickup: processedCampusPickup,
               campusDestination: processedCampusDestination,
               message: `New ride request from ${pickup} to ${destination}`
