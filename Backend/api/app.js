@@ -12,6 +12,7 @@ const rideRoutes = require('../routes/ride.routes');
 const campusRoutes = require('../routes/campus.routes');
 const debugRoutes = require('../routes/debug.routes');
 
+const serverless = require('serverless-http');
 
 connectToDb();
 
@@ -36,5 +37,5 @@ app.use('/rides', rideRoutes);
 
 
 
-module.exports = app;
+module.exports = serverless(app);
 
