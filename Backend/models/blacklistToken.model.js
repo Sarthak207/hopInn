@@ -1,16 +1,9 @@
 const mongoose = require('mongoose');
 
-const blacklistTokenSchema = new mongoose.Schema({
-    token: {
-        type: String,
-        required: true,
-        unique: true
-    },
-    createdAt: {
-        type: Date,
-        default: Date.now,
-        expires: 86400 // 24 hours in seconds
-    }
+const blackListTokenSchema = new mongoose.Schema({
+    token: { type: String, required: true },
+    createdAt: { type: Date, default: Date.now, expires: '7d' }
 });
 
-module.exports = mongoose.model('BlacklistToken', blacklistTokenSchema);
+// Prevent OverwriteModelError in dev/hot-reload
+module.exports = mongoose.models.BlacklistToken || mongoose.model('BlacklistToken', blackListTokenSchema);
