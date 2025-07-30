@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 const { seedCampusLocations } = require('./campusLocationSeeder');
 
 // Connect to MongoDB
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://0.0.0.0/ridePool', {
+mongoose.connect(process.env.MONGODB_URI || 'mongodb+srv://sarthak:sarthak207@ridepool.0tttpzb.mongodb.net/?retryWrites=true&w=majority&appName=ridePool', {
     useNewUrlParser: true,
     useUnifiedTopology: true
 });

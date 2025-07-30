@@ -49,16 +49,6 @@ const LookingForDriver = (props) => {
                 <p className="text-gray-400 text-sm">Please wait while we find you a driver...</p>
             </div>
 
-            {/* Debug OTP Section */}
-            <div className="bg-red-600/20 border border-red-600/30 rounded-xl p-4 mb-4">
-                <div className="text-center text-red-300 text-sm">
-                    <p>Debug Info:</p>
-                    <p>OTP State: {otp || 'No OTP'}</p>
-                    <p>Props Ride: {props.ride ? 'Exists' : 'Null'}</p>
-                    <p>Props OTP: {props.ride?.otp || 'No OTP in props'}</p>
-                </div>
-            </div>
-
             {/* OTP Display Section */}
             <div className="bg-gradient-to-r from-green-600/20 to-blue-600/20 border border-green-600/30 rounded-xl p-6 mb-8">
                 <div className="text-center">
