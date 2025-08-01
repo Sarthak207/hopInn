@@ -138,7 +138,7 @@ const ConfirmRide = (props) => {
                         <div className="flex-1">
                             <h3 className='text-lg font-medium text-white'>
                                 {props.vehicleType === 'car' ? 'Pool Car' : 
-                                 props.vehicleType === 'moto' ? 'Pool Bike' : 'Pool Auto'}
+                                 props.vehicleType === 'moto' ? 'Pool Bike' : 'Pool Moped'}
                             </h3>
                             <p className='text-sm text-gray-400 mt-1'>Shared ride with students</p>
                         </div>

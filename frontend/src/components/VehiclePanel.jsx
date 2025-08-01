@@ -47,9 +47,9 @@ const VehiclePanel = (props) => {
             
             {/* Pool Auto Option */}
             <div onClick={() => handleVehicleSelect('auto')} className='flex border-2 border-gray-700 hover:border-gray-600 active:border-white mb-3 rounded-xl w-full p-4 items-center justify-between bg-gray-800/50 cursor-pointer'>
-                <img className='h-12' src="https://www.uber-assets.com/image/upload/f_auto,q_auto:ec,c_fill,h_368,w_552/v1648431773/assets/1d/db8c56-0204-4ce4-81ce-56a11a07fe98/original/Uber_Auto_558x372_pixels_Desktop.png" alt="" />
+                <img className='h-12' src="https://png.pngtree.com/png-clipart/20190516/original/pngtree-scooter-png-image_3637449.jpg" alt="" />
                 <div className='ml-3 flex-1'>
-                    <h4 className='font-medium text-base text-white'>Pool Auto <span className="text-gray-400"><i className="ri-user-3-fill"></i>3</span></h4>
+                    <h4 className='font-medium text-base text-white'>Pool Moped <span className="text-gray-400"><i className="ri-user-3-fill"></i>3</span></h4>
                     <h5 className='font-medium text-sm text-gray-300'>3 mins away</h5>
                     <p className='font-normal text-xs text-gray-400'>Comfortable shared rides</p>
                 </div>
