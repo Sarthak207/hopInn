@@ -25,7 +25,7 @@ const VehiclePanel = (props) => {
             
             {/* Pool Car Option */}
             <div onClick={() => handleVehicleSelect('car')} className='flex border-2 border-gray-700 hover:border-gray-600 active:border-white mb-3 rounded-xl w-full p-4 items-center justify-between bg-gray-800/50 cursor-pointer'>
-                <img className='h-12' src="https://swyft.pl/wp-content/uploads/2023/05/how-many-people-can-a-uberx-take.jpg" alt="" />
+                <img className='h-12' src="https://www.pngplay.com/wp-content/uploads/8/Uber-PNG-Photos.png" alt="" />
                 <div className='ml-3 flex-1'>
                     <h4 className='font-medium text-base text-white'>Pool Car <span className="text-gray-400"><i className="ri-user-3-fill"></i>4</span></h4>
                     <h5 className='font-medium text-sm text-gray-300'>2 mins away</h5>
