@@ -16,7 +16,15 @@ const debugRoutes = require('./routes/debug.routes');
 
 connectToDb();
 
-app.use(cors());
+const allowedOrigins = [
+  'https://hop-inn.vercel.app',
+  'http://localhost:3000'
+];
+app.use(cors({
+  origin: allowedOrigins,
+  credentials: true
+}));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
