@@ -63,7 +63,7 @@ const ConfirmRide = (props) => {
 
                 {/* Vehicle Image */}
                 <div className="bg-gray-800 rounded-2xl p-4 w-full flex justify-center">
-                    <img className='h-20' src="https://swyft.pl/wp-content/uploads/2023/05/how-many-people-can-a-uberx-take.jpg" alt="" />
+                    <img className='h-20' src="https://www.pngplay.com/wp-content/uploads/8/Uber-PNG-Photos.png" alt="" />
                 </div>
 
                 {/* Trip Details */}
