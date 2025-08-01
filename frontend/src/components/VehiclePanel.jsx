@@ -47,7 +47,7 @@ const VehiclePanel = (props) => {
             
             {/* Pool Auto Option */}
             <div onClick={() => handleVehicleSelect('auto')} className='flex border-2 border-gray-700 hover:border-gray-600 active:border-white mb-3 rounded-xl w-full p-4 items-center justify-between bg-gray-800/50 cursor-pointer'>
-                <img className='h-12' src="https://png.pngtree.com/png-clipart/20190516/original/pngtree-scooter-png-image_3637449.jpg" alt="" />
+                <img className='h-12' src="https://pngtree.com/freepng/soft-blue-scooter_13165985.html" alt="" />
                 <div className='ml-3 flex-1'>
                     <h4 className='font-medium text-base text-white'>Pool Moped <span className="text-gray-400"><i className="ri-user-3-fill"></i>3</span></h4>
                     <h5 className='font-medium text-sm text-gray-300'>3 mins away</h5>
