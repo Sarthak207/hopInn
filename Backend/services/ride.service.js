@@ -1,6 +1,6 @@
 /**************************************************************************************************
  *  services/ride.service.js                                                                      *
- *  Central ride-handling service                                                                *
+ *  Central ride-handling serice                                                                *
  *  –  Campus & external fare calculation                                                       *
  *  –  Ride CRUD / status updates                                                               *
  *  –  Real-time socket events                                                                  *
