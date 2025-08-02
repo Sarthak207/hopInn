@@ -11,7 +11,7 @@ const mapsRoutes = require('./routes/maps.routes');
 const rideRoutes = require('./routes/ride.routes');
 const campusRoutes = require('./routes/campus.routes');
 const debugRoutes = require('./routes/debug.routes');
-
+const path= require("path");
 //const serverless = require('serverless-http');
 
 connectToDb();
@@ -43,7 +43,18 @@ app.use('/maps', mapsRoutes);
 app.use('/rides', rideRoutes);
 
 
+const __dirname1= path.resolve();
+if(process.env.NODE_ENV=="production"){
+  app.use(express.static(path.join(__dirname1,"/frontend/dist")));
 
+  app.get('*',(req,res)=>{
+    res.sendFile(path.resolve(__dirname1,"frontend","dist","index.html"));
+  })
+}else{
+  app.get("/",(req,res)=>{
+    res.send("API is Running successfully");
+  });
+}
 
 module.exports = app;
 
