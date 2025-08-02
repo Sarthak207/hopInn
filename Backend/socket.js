@@ -7,7 +7,7 @@ let io;
 function initializeSocket(server) {
     io = socketIo(server, {
         cors: {
-            origin: 'https://hopinn-1.onrender.com',
+            origin: 'https://hop-inn.vercel.app',
             methods: [ 'GET', 'POST' ]
         }
     });
